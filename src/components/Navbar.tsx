@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Warehouse, BellRing, ChevronDown, LogOut, User as UserIcon 
+  BellRing, ChevronDown, LogOut, User as UserIcon, MessageCircle 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Logo from './Logo';
+import ChatBot from './ChatBot';
 
 interface NavbarProps {
   activePage?: 'dashboard' | 'operations' | 'products' | 'move-history' | 'settings';
@@ -14,6 +16,7 @@ const Navbar: React.FC<NavbarProps> = ({ activePage }) => {
   const location = useLocation();
   const [showOpsDropdown, setShowOpsDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -35,11 +38,11 @@ const Navbar: React.FC<NavbarProps> = ({ activePage }) => {
   };
 
   return (
+    <>
     <nav className="sticky top-0 z-50 h-16 bg-white border-b border-input-border px-8 flex items-center justify-between shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2 text-primary-orange">
-          <Warehouse size={24} />
-          <span className="font-sora text-xl font-bold text-dark-text">StockFlow</span>
+        <Link to="/dashboard" className="flex items-center gap-2">
+          <Logo size="sm" />
         </Link>
         <div className="h-6 w-[1px] bg-input-border mx-2" />
         <div className="hidden md:flex items-center gap-1">
@@ -100,6 +103,10 @@ const Navbar: React.FC<NavbarProps> = ({ activePage }) => {
       </div>
 
       <div className="flex items-center gap-4">
+        <button onClick={() => setChatOpen(!chatOpen)} className={`relative p-2 rounded-lg transition-all ${chatOpen ? 'bg-orange-100 text-primary-orange' : 'text-muted-text hover:text-primary-orange hover:bg-orange-50'}`} title="Sanchay AI Assistant">
+          <MessageCircle size={20} />
+          <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+        </button>
         <button className="text-muted-text hover:text-primary-orange transition-colors">
           <BellRing size={20} />
         </button>
@@ -137,6 +144,8 @@ const Navbar: React.FC<NavbarProps> = ({ activePage }) => {
         </div>
       </div>
     </nav>
+    <ChatBot isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+    </>
   );
 };
 

@@ -4,6 +4,7 @@ import {
   Plus, Search, Filter, MoreVertical, ChevronRight, Download, 
   Calendar, User, MapPin, Inbox, Package, Trash2, X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import SearchBar from '../components/SearchBar';
@@ -23,12 +24,12 @@ interface Delivery {
 const STATUSES = ['All', 'Draft', 'Ready', 'Done', 'Late', 'Canceled'];
 
 export default function DeliveryList() {
+  const navigate = useNavigate();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [showNewModal, setShowNewModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -56,15 +57,7 @@ export default function DeliveryList() {
     const items = [...newDelivery.items]; (items[i] as any)[field] = value; setNewDelivery({...newDelivery, items});
   };
 
-  const handleCreateDelivery = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await axios.post('/delivery', { ...newDelivery, items: newDelivery.items.filter(i => i.product_id && i.quantity > 0) });
-      setToast({ message: 'Delivery created successfully', type: 'success' });
-      setShowNewModal(false); fetchData();
-      setNewDelivery({ from: 'WH/Stock', to: '', contact: '', schedule_date: new Date().toISOString().split('T')[0], items: [{ product_id: '', quantity: 1 }] });
-    } catch (error) { setToast({ message: 'Failed to create delivery', type: 'error' }); }
-  };
+
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -100,7 +93,7 @@ export default function DeliveryList() {
             <div className="flex items-center gap-2 text-sm text-[var(--muted-text)] mb-1"><span>Operations</span><ChevronRight size={14} /><span className="text-[var(--primary-green)] font-medium">Deliveries</span></div>
             <h1 className="text-3xl font-bold text-[var(--dark-text)] font-['Sora']">Deliveries</h1>
           </div>
-          <button onClick={() => setShowNewModal(true)} className="flex items-center gap-2 bg-[var(--primary-green)] text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 shadow-lg shadow-green-100"><Plus size={20} /> New Delivery</button>
+          <button onClick={() => navigate('/operations/delivery/new')} className="flex items-center gap-2 bg-[var(--primary-green)] text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 shadow-lg shadow-green-100"><Plus size={20} /> New Delivery</button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -160,45 +153,12 @@ export default function DeliveryList() {
                       </div>
                     </td>
                   </motion.tr>
-                )) : <tr><td colSpan={8}><EmptyState icon={Inbox} title="No deliveries found" subtitle="Adjust filters or create a new delivery." actionLabel="Create Delivery" onAction={() => setShowNewModal(true)} /></td></tr>}
+                )) : <tr><td colSpan={8}><EmptyState icon={Inbox} title="No deliveries found" subtitle="Adjust filters or create a new delivery." actionLabel="Create Delivery" onAction={() => navigate('/operations/delivery/new')} /></td></tr>}
               </tbody>
             </table>
           </div>
         </div>
       </main>
-
-      <AnimatePresence>
-        {showNewModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                <h2 className="text-xl font-bold text-[var(--dark-text)] font-['Sora']">New Delivery</h2>
-                <button onClick={() => setShowNewModal(false)} className="text-gray-400 hover:text-gray-600"><Plus size={24} className="rotate-45" /></button>
-              </div>
-              <form onSubmit={handleCreateDelivery} className="p-6 space-y-4">
-                <div><label className="block text-sm font-medium text-[var(--muted-text)] mb-1.5 flex items-center gap-2"><MapPin size={14} /> Source</label><input type="text" required value={newDelivery.from} onChange={e => setNewDelivery({...newDelivery, from: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-[var(--input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)]" placeholder="WH/Stock" /></div>
-                <div><label className="block text-sm font-medium text-[var(--muted-text)] mb-1.5 flex items-center gap-2"><User size={14} /> Customer / To</label><input type="text" required value={newDelivery.to} onChange={e => setNewDelivery({...newDelivery, to: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-[var(--input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)]" placeholder="Customer X" /></div>
-                <div><label className="block text-sm font-medium text-[var(--muted-text)] mb-1.5 flex items-center gap-2"><User size={14} /> Contact</label><input type="text" required value={newDelivery.contact} onChange={e => setNewDelivery({...newDelivery, contact: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-[var(--input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)]" placeholder="Alice Brown" /></div>
-                <div><label className="block text-sm font-medium text-[var(--muted-text)] mb-1.5 flex items-center gap-2"><Calendar size={14} /> Date</label><input type="date" required value={newDelivery.schedule_date} onChange={e => setNewDelivery({...newDelivery, schedule_date: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-[var(--input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)]" /></div>
-                <div>
-                  <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium text-[var(--muted-text)] flex items-center gap-2"><Package size={14} /> Products</label><button type="button" onClick={addItem} className="text-[var(--primary-green)] text-xs font-bold hover:underline flex items-center gap-1"><Plus size={14} /> Add</button></div>
-                  <div className="space-y-3">{newDelivery.items.map((item, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <select value={item.product_id} onChange={e => updateItem(idx, 'product_id', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-[var(--input-border)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)]"><option value="">Select product</option>{products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}</select>
-                      <input type="number" min="1" value={item.quantity} onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} className="w-20 px-3 py-2 rounded-lg border border-[var(--input-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)]" />
-                      {newDelivery.items.length > 1 && <button type="button" onClick={() => removeItem(idx)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>}
-                    </div>
-                  ))}</div>
-                </div>
-                <div className="pt-4 flex gap-3">
-                  <button type="button" onClick={() => setShowNewModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--input-border)] text-[var(--muted-text)] font-medium hover:bg-gray-50">Cancel</button>
-                  <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--primary-green)] text-white font-medium hover:opacity-90 shadow-lg shadow-green-100">Create</button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <ConfirmDialog isOpen={!!deleteId} title="Delete Delivery" message="Are you sure you want to delete this delivery?" onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />

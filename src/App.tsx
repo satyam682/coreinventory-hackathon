@@ -11,6 +11,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import Dashboard from './pages/Dashboard';
 import ReceiptList from './pages/ReceiptList';
 import DeliveryList from './pages/DeliveryList';
+import DeliveryForm from './pages/DeliveryForm';
 import ProductList from './pages/ProductList';
 import MoveHistory from './pages/MoveHistory';
 import WarehouseSettings from './pages/WarehouseSettings';
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/operations/receipts" element={<ProtectedRoute><ReceiptList /></ProtectedRoute>} />
         <Route path="/operations/delivery" element={<ProtectedRoute><DeliveryList /></ProtectedRoute>} />
+        <Route path="/operations/delivery/new" element={<ProtectedRoute><DeliveryForm /></ProtectedRoute>} />
         <Route path="/operations/adjustments" element={<ProtectedRoute><InventoryAdjustment /></ProtectedRoute>} />
         <Route path="/operations/transfers" element={<ProtectedRoute><InternalTransfers /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><ProductList /></ProtectedRoute>} />

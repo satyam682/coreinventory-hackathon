@@ -18,10 +18,15 @@ interface Product {
   name: string;
   sku: string;
   unit_of_measure: string;
+  free: number;
+  on_hand: number;
 }
 
 interface ReceiptItem {
+  id: number;
+  mode: 'select' | 'new';
   product_id: string;
+  new_product_name: string;
   quantity: number;
 }
 
@@ -54,8 +59,11 @@ export default function ReceiptList() {
     to: 'WH/Stock',
     contact: '',
     schedule_date: new Date().toISOString().split('T')[0],
-    items: [{ product_id: '', quantity: 1 }] as ReceiptItem[]
   });
+
+  const [productRows, setProductRows] = useState<ReceiptItem[]>([
+    { id: Date.now(), mode: 'select', product_id: '', new_product_name: '', quantity: 1 }
+  ]);
 
   useEffect(() => {
     fetchData();
@@ -78,30 +86,50 @@ export default function ReceiptList() {
   };
 
   const addItem = () => {
-    setNewReceipt({...newReceipt, items: [...newReceipt.items, { product_id: '', quantity: 1 }]});
+    setProductRows(prev => [...prev, { id: Date.now(), mode: 'select', product_id: '', new_product_name: '', quantity: 1 }]);
   };
 
-  const removeItem = (index: number) => {
-    setNewReceipt({...newReceipt, items: newReceipt.items.filter((_, i) => i !== index)});
+  const removeItem = (id: number) => {
+    setProductRows(prev => prev.filter(r => r.id !== id));
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
-    const items = [...newReceipt.items];
-    (items[index] as any)[field] = value;
-    setNewReceipt({...newReceipt, items});
+  const updateRow = (id: number, field: string, value: any) => {
+    setProductRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
+
+  const switchToNew = (id: number) => {
+    setProductRows(prev => prev.map(r => r.id === id ? { ...r, mode: 'new', product_id: '' } : r));
+  };
+
+  const switchToSelect = (id: number) => {
+    setProductRows(prev => prev.map(r => r.id === id ? { ...r, mode: 'select', new_product_name: '' } : r));
   };
 
   const handleCreateReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate
+    for (const row of productRows) {
+      if (row.mode === 'select' && !row.product_id) return setToast({ message: 'Please select a product or add a new one', type: 'error' });
+      if (row.mode === 'new' && !row.new_product_name.trim()) return setToast({ message: 'Please enter the new product name', type: 'error' });
+      if (!row.quantity || row.quantity < 1) return setToast({ message: 'Quantity must be at least 1', type: 'error' });
+    }
     try {
-      const validItems = newReceipt.items.filter(i => i.product_id && i.quantity > 0);
-      await axios.post('/receipts', { ...newReceipt, items: validItems });
-      setToast({ message: 'Receipt created successfully', type: 'success' });
+      const payload = {
+        ...newReceipt,
+        products: productRows.map(r => ({ mode: r.mode, product_id: r.product_id || null, new_product_name: r.new_product_name || null, quantity: r.quantity }))
+      };
+      const res = await axios.post('/receipts', payload);
+      const data = res.data;
+      const msg = data.newly_created_products?.length > 0
+        ? `Receipt created! New products: ${data.newly_created_products.join(', ')}`
+        : 'Receipt created successfully';
+      setToast({ message: msg, type: 'success' });
       setShowNewModal(false);
       fetchData();
-      setNewReceipt({ from: '', to: 'WH/Stock', contact: '', schedule_date: new Date().toISOString().split('T')[0], items: [{ product_id: '', quantity: 1 }] });
-    } catch (error) {
-      setToast({ message: 'Failed to create receipt', type: 'error' });
+      setNewReceipt({ from: '', to: 'WH/Stock', contact: '', schedule_date: new Date().toISOString().split('T')[0] });
+      setProductRows([{ id: Date.now(), mode: 'select', product_id: '', new_product_name: '', quantity: 1 }]);
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.error || 'Failed to create receipt', type: 'error' });
     }
   };
 
@@ -272,22 +300,49 @@ export default function ReceiptList() {
                   <input type="date" required value={newReceipt.schedule_date} onChange={e => setNewReceipt({...newReceipt, schedule_date: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border border-[var(--input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)]" />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <label className="text-sm font-medium text-[var(--muted-text)] flex items-center gap-2"><Package size={14} /> Products</label>
-                    <button type="button" onClick={addItem} className="text-[var(--primary-orange)] text-xs font-bold hover:underline flex items-center gap-1"><Plus size={14} /> Add</button>
                   </div>
                   <div className="space-y-3">
-                    {newReceipt.items.map((item, idx) => (
-                      <div key={idx} className="flex gap-2 items-center">
-                        <select value={item.product_id} onChange={e => updateItem(idx, 'product_id', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-[var(--input-border)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)]">
-                          <option value="">Select product</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
-                        </select>
-                        <input type="number" min="1" value={item.quantity} onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} className="w-20 px-3 py-2 rounded-lg border border-[var(--input-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)]" />
-                        {newReceipt.items.length > 1 && <button type="button" onClick={() => removeItem(idx)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>}
+                    {productRows.map((row) => (
+                      <div key={row.id} className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          {row.mode === 'select' ? (
+                            <select
+                              value={row.product_id}
+                              onChange={e => {
+                                if (e.target.value === '__NEW__') switchToNew(row.id);
+                                else updateRow(row.id, 'product_id', e.target.value);
+                              }}
+                              className="w-full px-3 py-2 rounded-lg border border-[var(--input-border)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)]"
+                            >
+                              <option value="">Select product...</option>
+                              {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.free} units available)</option>)}
+                              <option value="__NEW__" style={{ color: '#F97316', fontStyle: 'italic' }}>-- Add New Product --</option>
+                            </select>
+                          ) : (
+                            <div>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={row.new_product_name}
+                                  onChange={e => updateRow(row.id, 'new_product_name', e.target.value)}
+                                  placeholder="Type new product name..."
+                                  className="w-full px-3 py-2 pr-14 rounded-lg border-[1.5px] border-orange-400 bg-orange-50/30 text-sm focus:outline-none"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-semibold bg-orange-50 text-orange-500 border border-orange-200 px-2 py-0.5 rounded-full">NEW</span>
+                              </div>
+                              <button type="button" onClick={() => switchToSelect(row.id)} className="text-[11px] text-gray-400 hover:text-gray-600 underline mt-1">← Back to existing products</button>
+                            </div>
+                          )}
+                        </div>
+                        <input type="number" min="1" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', Number(e.target.value) || 1)} className="w-20 px-3 py-2 rounded-lg border border-[var(--input-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] text-center" />
+                        {productRows.length > 1 && <button type="button" onClick={() => removeItem(row.id)} className="p-2 text-red-400 hover:text-red-600 border border-red-100 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>}
                       </div>
                     ))}
                   </div>
+                  <button type="button" onClick={addItem} className="w-full h-9 mt-3 border-dashed border-[1.5px] border-gray-200 hover:border-orange-400 text-gray-400 hover:text-orange-500 rounded-lg text-sm transition-colors">+ Add Another Product</button>
                 </div>
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setShowNewModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--input-border)] text-[var(--muted-text)] font-medium hover:bg-gray-50">Cancel</button>

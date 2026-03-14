@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Warehouse, Mail, Lock, Loader2, ShieldCheck, Check } from 'lucide-react';
+import { Mail, Lock, Loader2, ShieldCheck, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import AuthInput from '../components/AuthInput';
+import Logo from '../components/Logo';
 import axios from '../utils/axios';
 
 const SignUpPage: React.FC = () => {
@@ -15,6 +16,7 @@ const SignUpPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [emailChecking, setEmailChecking] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Validation states
   const isLoginIdValid = loginId.length >= 6 && loginId.length <= 12 && /^[a-zA-Z0-9]+$/.test(loginId);
@@ -31,6 +33,7 @@ const SignUpPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     if (!isLoginIdValid || !isEmailValid || !isPasswordValid || !passwordsMatch) return;
 
     setIsLoading(true);
@@ -38,8 +41,13 @@ const SignUpPage: React.FC = () => {
       await axios.post('/auth/signup', { loginId, email, password });
       setIsSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      if (err.response && err.response.data && err.response.data.error) {
+        setSubmitError(err.response.data.error);
+      } else {
+        setSubmitError('An unexpected error occurred during signup.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -54,15 +62,19 @@ const SignUpPage: React.FC = () => {
         className="w-full max-w-[460px] bg-white rounded-[20px] p-10 shadow-[0_8px_40px_rgba(249,115,22,0.15)] border-t-4 border-primary-green"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-primary-orange/10 rounded-xl flex items-center justify-center text-primary-orange mb-4">
-            <Warehouse size={28} />
+          <div className="mb-4">
+            <Logo size="lg" />
           </div>
-          <h1 className="text-[28px] font-bold text-dark-text font-sora mb-1">StockFlow</h1>
-          <p className="text-sm text-muted-text font-dm-sans">Create your account</p>
+          <p className="text-sm text-muted-text font-dm-sans mt-2">Create your account</p>
           <div className="w-full h-[1px] bg-primary-green/20 mt-6" />
         </div>
 
         <form onSubmit={handleSignUp} className="flex flex-col gap-5">
+          {submitError && (
+            <div className="p-3 mb-2 rounded-xl bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center justify-center text-center">
+              {submitError}
+            </div>
+          )}
           <AuthInput
             label="Login ID"
             placeholder="Choose a login ID"

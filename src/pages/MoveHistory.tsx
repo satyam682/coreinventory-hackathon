@@ -60,6 +60,37 @@ export default function MoveHistory() {
 
   const clearFilters = () => { setTypeFilter('All'); setStatusFilter('All'); };
 
+  const handleExportCSV = () => {
+    if (filteredMoves.length === 0) {
+      alert("No data to export");
+      return;
+    }
+    const headers = ["Reference", "Type", "From", "To", "Contact", "Date", "Status"];
+    const rows = filteredMoves.map(m => [
+      m.reference || '',
+      getType(m) || '',
+      m.from || '',
+      m.to || '',
+      m.contact || '',
+      m.date ? new Date(m.date).toLocaleDateString() : '',
+      m.status || ''
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Sanchay_Moves_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-[var(--primary-bg)] font-['DM_Sans']">
       <Navbar />
@@ -69,7 +100,7 @@ export default function MoveHistory() {
             <div className="flex items-center gap-2 text-sm text-[var(--muted-text)] mb-1"><span>Inventory</span><ChevronRight size={14} /><span className="text-[var(--primary-orange)] font-medium">Move History</span></div>
             <h1 className="text-3xl font-bold text-[var(--dark-text)] font-['Sora']">Move History</h1>
           </div>
-          <button className="flex items-center gap-2 bg-white border border-[var(--input-border)] text-[var(--dark-text)] px-4 py-2 rounded-lg font-medium hover:bg-gray-50"><Download size={20} /> Export CSV</button>
+          <button onClick={handleExportCSV} className="flex items-center gap-2 bg-white border border-[var(--input-border)] text-[var(--dark-text)] px-4 py-2 rounded-lg font-medium hover:bg-gray-50"><Download size={20} /> Export CSV</button>
         </div>
 
         {/* Stats */}

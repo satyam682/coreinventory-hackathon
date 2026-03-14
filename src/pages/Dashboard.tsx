@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import Joyride, { Step, CallBackProps, STATUS, TooltipRenderProps } from 'react-joyride';
 import { 
   Package, AlertTriangle, Inbox, TruckIcon, ArrowRightLeft,
   Activity, Clock, ChevronRight, BarChart3, X, Filter, Clipboard
@@ -39,7 +40,105 @@ export default function Dashboard() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [warehouseFilter, setWarehouseFilter] = useState('');
 
-  useEffect(() => { fetchDashboardData(); }, []);
+  // Tour State
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps] = useState<Step[]>([
+    {
+      target: '.tour-dashboard-title',
+      title: 'Welcome to Sanchay!',
+      content: 'This is your Inventory Dashboard. Get a high-level view of your entire warehouse operations at a single glance.',
+      disableBeacon: true,
+      placement: 'bottom',
+    },
+    {
+      target: 'nav',
+      title: 'Navigation & Settings',
+      content: 'Use the top navigation bar to quickly jump between your Products, Operations, and History. You can also access your profile and settings from the top right.',
+    },
+    {
+      target: '.tour-kpis',
+      title: 'Real-time Metrics',
+      content: 'These metric cards show you your real-time stock levels, pending operations, and late alerts so you know exactly what needs your attention.',
+    },
+    {
+      target: '.tour-filters',
+      title: 'Powerful Filtering',
+      content: 'Use these dynamic filters to seamlessly find the exact documents, statuses, or specific locations you want to view below.',
+    },
+    {
+      target: '.tour-receipts',
+      title: 'Inbound Tracking',
+      content: 'Track all items coming into your warehouse. You can quickly see what receipts are pending or running late.',
+    },
+    {
+      target: '.tour-deliveries',
+      title: 'Outbound Deliveries',
+      content: 'Monitor all items leaving your warehouse. Ensure your delivery orders are completed on time directly from here.',
+    },
+    {
+      target: '.tour-recent-ops',
+      title: 'Recent Operations',
+      content: 'Here is a detailed log of all your inventory movements. Click "View All" on the right to manage them seamlessly!',
+    }
+  ]);
+
+  // Custom Tooltip Component for Joyride
+  const Tooltip = ({
+    index,
+    step,
+    tooltipProps,
+    primaryProps,
+    skipProps,
+    backProps,
+    isLastStep,
+  }: TooltipRenderProps) => {
+    return (
+      <div {...tooltipProps} className="bg-white rounded-2xl shadow-2xl p-6 w-[350px] font-['DM_Sans'] border-t-4 border-[var(--primary-orange)]">
+        <div className="flex justify-between items-start mb-2">
+          {step.title && <h3 className="text-xl font-bold text-[var(--dark-text)] font-['Sora']">{step.title}</h3>}
+          <button {...skipProps} className="text-gray-400 hover:text-red-500 transition-colors p-1" title="Skip Tour">
+            <X size={18} />
+          </button>
+        </div>
+        
+        <p className="text-[15px] text-[var(--muted-text)] mb-6 leading-relaxed">
+          {step.content}
+        </p>
+
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Step {index + 1} of {tourSteps.length}
+          </span>
+          <div className="flex gap-2">
+            {index > 0 && (
+              <button {...backProps} className="px-4 py-2 text-sm font-semibold text-[var(--dark-text)] bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                Back
+              </button>
+            )}
+            <button {...primaryProps} className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[var(--primary-orange)] to-[#EA580C] hover:opacity-90 rounded-xl shadow-lg shadow-orange-200 transition-all flex items-center gap-2">
+              {isLastStep ? 'Finish' : 'Next'} <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => { 
+    fetchDashboardData(); 
+    if (!localStorage.getItem('dashboardTourCompleted')) {
+      setRunTour(true);
+    }
+  }, []);
+
+  const handleTourCallback = (data: CallBackProps) => {
+    const { status } = data;
+    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+    if (finishedStatuses.includes(status)) {
+      setRunTour(false);
+      localStorage.setItem('dashboardTourCompleted', 'true');
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -85,15 +184,48 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[var(--primary-bg)] font-['DM_Sans']">
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        continuous
+        showSkipButton
+        showProgress
+        callback={handleTourCallback}
+        tooltipComponent={Tooltip}
+        floaterProps={{
+          disableAnimation: false,
+          styles: { floater: { filter: 'drop-shadow(0px 8px 30px rgba(249,115,22,0.2))' } }
+        }}
+        styles={{
+          options: {
+            zIndex: 1000,
+          },
+          overlay: {
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          }
+        }}
+        locale={{ skip: 'Skip Tour' }}
+      />
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--dark-text)] font-['Sora'] mb-1">Inventory Dashboard</h1>
+        <div className="mb-8 tour-dashboard-title">
+          <div className="flex items-center gap-4 mb-1">
+            <h1 className="text-3xl font-bold text-[var(--dark-text)] font-['Sora']">Inventory Dashboard</h1>
+            <button 
+              onClick={() => {
+                setRunTour(true);
+                localStorage.removeItem('dashboardTourCompleted');
+              }}
+              className="px-3 py-1.5 bg-orange-100 text-[var(--primary-orange)] text-sm font-bold rounded-lg hover:bg-orange-200 transition-colors flex items-center gap-2"
+            >
+              Take Tour
+            </button>
+          </div>
           <p className="text-[var(--muted-text)]">Real-time overview of your inventory operations</p>
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="tour-kpis grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {loading ? [...Array(6)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 animate-pulse border border-gray-100"><div className="h-4 bg-gray-100 rounded w-1/2 mb-3" /><div className="h-8 bg-gray-100 rounded w-1/3" /></div>
           )) : kpiCards.map((kpi, i) => (
@@ -110,7 +242,7 @@ export default function Dashboard() {
         </div>
 
         {/* Dynamic Filters */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white p-4 rounded-xl border border-[var(--input-border)] mb-8">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="tour-filters bg-white p-4 rounded-xl border border-[var(--input-border)] mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Filter size={16} className="text-[var(--primary-orange)]" />
             <span className="text-sm font-semibold text-[var(--dark-text)]">Dynamic Filters</span>
@@ -146,7 +278,7 @@ export default function Dashboard() {
         {/* Operation Summaries */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {(docTypeFilter === 'All' || docTypeFilter === 'Receipts') && (
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="tour-receipts bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
               <div className="p-5 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-[var(--light-orange-bg)] rounded-xl"><Inbox size={20} className="text-[var(--primary-orange)]" /></div>
@@ -168,7 +300,7 @@ export default function Dashboard() {
           )}
 
           {(docTypeFilter === 'All' || docTypeFilter === 'Delivery') && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="tour-deliveries bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
               <div className="p-5 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-50 rounded-xl"><TruckIcon size={20} className="text-[var(--primary-green)]" /></div>
@@ -191,7 +323,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Operations */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="tour-recent-ops bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-50 rounded-xl"><Activity size={20} className="text-blue-600" /></div>

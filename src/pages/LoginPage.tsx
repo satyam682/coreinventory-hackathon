@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Warehouse, User, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { User, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import AuthInput from '../components/AuthInput';
+import Logo from '../components/Logo';
 import axios from '../utils/axios';
 
 const LoginPage: React.FC = () => {
@@ -58,11 +59,10 @@ const LoginPage: React.FC = () => {
         className="w-full max-w-[460px] bg-white rounded-[20px] p-10 shadow-[0_8px_40px_rgba(249,115,22,0.15)] border-t-4 border-primary-orange"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-primary-orange/10 rounded-xl flex items-center justify-center text-primary-orange mb-4">
-            <Warehouse size={28} />
+          <div className="mb-4">
+            <Logo size="lg" />
           </div>
-          <h1 className="text-[28px] font-bold text-dark-text font-sora mb-1">StockFlow</h1>
-          <p className="text-sm text-muted-text font-dm-sans">Warehouse Management System</p>
+          <p className="text-sm text-muted-text font-dm-sans mt-2">Warehouse Management System</p>
           <div className="w-full h-[1px] bg-primary-orange/20 mt-6" />
         </div>
 

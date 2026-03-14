@@ -2,12 +2,62 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Settings, Home, MapPin, Plus, Edit2, Trash2, 
-  ChevronRight, Save, X, Building2, Info
+  ChevronRight, Save, X, Building2, Info, Map as MapIcon
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import Navbar from '../components/Navbar';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import axios from '../utils/axios';
+
+// Indian cities with coordinates for map
+const INDIAN_CITIES: { name: string; lat: number; lng: number }[] = [
+  { name: 'Mumbai', lat: 19.076, lng: 72.8777 },
+  { name: 'Delhi', lat: 28.7041, lng: 77.1025 },
+  { name: 'Bangalore', lat: 12.9716, lng: 77.5946 },
+  { name: 'Hyderabad', lat: 17.385, lng: 78.4867 },
+  { name: 'Ahmedabad', lat: 23.0225, lng: 72.5714 },
+  { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
+  { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+  { name: 'Pune', lat: 18.5204, lng: 73.8567 },
+  { name: 'Jaipur', lat: 26.9124, lng: 75.7873 },
+  { name: 'Lucknow', lat: 26.8467, lng: 80.9462 },
+  { name: 'Kanpur', lat: 26.4499, lng: 80.3319 },
+  { name: 'Nagpur', lat: 21.1458, lng: 79.0882 },
+  { name: 'Indore', lat: 22.7196, lng: 75.8577 },
+  { name: 'Thane', lat: 19.2183, lng: 72.9781 },
+  { name: 'Bhopal', lat: 23.2599, lng: 77.4126 },
+  { name: 'Visakhapatnam', lat: 17.6868, lng: 83.2185 },
+  { name: 'Patna', lat: 25.6093, lng: 85.1376 },
+  { name: 'Vadodara', lat: 22.3072, lng: 73.1812 },
+  { name: 'Ghaziabad', lat: 28.6692, lng: 77.4538 },
+  { name: 'Ludhiana', lat: 30.901, lng: 75.8573 },
+  { name: 'Agra', lat: 27.1767, lng: 78.0081 },
+  { name: 'Nashik', lat: 19.9975, lng: 73.7898 },
+  { name: 'Surat', lat: 21.1702, lng: 72.8311 },
+  { name: 'Varanasi', lat: 25.3176, lng: 82.9739 },
+  { name: 'Coimbatore', lat: 11.0168, lng: 76.9558 },
+  { name: 'Kochi', lat: 9.9312, lng: 76.2673 },
+  { name: 'Chandigarh', lat: 30.7333, lng: 76.7794 },
+  { name: 'Guwahati', lat: 26.1445, lng: 91.7362 },
+  { name: 'Dehradun', lat: 30.3165, lng: 78.0322 },
+  { name: 'Noida', lat: 28.5355, lng: 77.391 },
+  { name: 'Gurugram', lat: 28.4595, lng: 77.0266 },
+  { name: 'Rajkot', lat: 22.3039, lng: 70.8022 },
+  { name: 'Amritsar', lat: 31.634, lng: 74.8723 },
+  { name: 'Ranchi', lat: 23.3441, lng: 85.3096 },
+  { name: 'Raipur', lat: 21.2514, lng: 81.6296 },
+];
+
+function getCityCoords(address: string): { lat: number; lng: number } | null {
+  const addr = address.toLowerCase();
+  for (const city of INDIAN_CITIES) {
+    if (addr.includes(city.name.toLowerCase())) return { lat: city.lat, lng: city.lng };
+  }
+  return null;
+}
 
 interface Warehouse {
   id: string;
@@ -15,6 +65,14 @@ interface Warehouse {
   short_code: string;
   address: string;
 }
+
+// Fix for default Leaflet marker icons in React
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 export default function WarehouseSettings() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -27,7 +85,8 @@ export default function WarehouseSettings() {
   const [formData, setFormData] = useState({
     name: '',
     short_code: '',
-    address: ''
+    address: '',
+    city: ''
   });
 
   useEffect(() => {
@@ -49,11 +108,15 @@ export default function WarehouseSettings() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const submitData = {
+        ...formData,
+        address: formData.city ? `${formData.address}, ${formData.city}` : formData.address
+      };
       if (editingWarehouse) {
-        await axios.patch(`/warehouses/${editingWarehouse.id}`, formData);
+        await axios.patch(`/warehouses/${editingWarehouse.id}`, submitData);
         setToast({ message: 'Warehouse updated successfully', type: 'success' });
       } else {
-        await axios.post('/warehouses', formData);
+        await axios.post('/warehouses', submitData);
         setToast({ message: 'Warehouse added successfully', type: 'success' });
       }
       resetForm();
@@ -78,19 +141,27 @@ export default function WarehouseSettings() {
 
   const startEdit = (warehouse: Warehouse) => {
     setEditingWarehouse(warehouse);
+    // Extract city from address
+    const matchedCity = INDIAN_CITIES.find(c => warehouse.address.toLowerCase().includes(c.name.toLowerCase()));
     setFormData({
       name: warehouse.name,
       short_code: warehouse.short_code,
-      address: warehouse.address
+      address: warehouse.address,
+      city: matchedCity?.name || ''
     });
     setShowAddForm(true);
   };
 
   const resetForm = () => {
-    setFormData({ name: '', short_code: '', address: '' });
+    setFormData({ name: '', short_code: '', address: '', city: '' });
     setEditingWarehouse(null);
     setShowAddForm(false);
   };
+
+  // Compute warehouse markers with valid city coordinates
+  const warehouseMarkers = warehouses
+    .map(w => ({ ...w, coords: getCityCoords(w.address) }))
+    .filter(w => w.coords !== null) as (Warehouse & { coords: { lat: number; lng: number } })[];
 
   return (
     <div className="min-h-screen bg-[var(--primary-bg)] font-['DM_Sans']">
@@ -186,6 +257,37 @@ export default function WarehouseSettings() {
               </div>
             </div>
 
+            {/* Map View */}
+            <div className="bg-white rounded-2xl border border-[var(--input-border)] overflow-hidden shadow-sm">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-[var(--dark-text)] font-['Sora'] flex items-center gap-2">
+                  <MapIcon size={20} className="text-[var(--primary-orange)]" /> Geographic Overview
+                </h2>
+                <span className="text-xs text-[var(--muted-text)] bg-orange-50 text-orange-600 px-2 py-1 rounded-full font-semibold">{warehouseMarkers.length} on map</span>
+              </div>
+              <div className="h-[400px] w-full relative z-0">
+                <MapContainer 
+                  center={[20.5937, 78.9629]} 
+                  zoom={4} 
+                  scrollWheelZoom={false}
+                  style={{ height: '100%', width: '100%', zIndex: 0 }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {warehouseMarkers.map((w) => (
+                    <Marker key={w.id} position={[w.coords.lat, w.coords.lng]}>
+                      <Popup>
+                        <strong>{w.name}</strong><br/>
+                        {w.address}
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </div>
+            </div>
+
             {/* Add/Edit Form */}
             <AnimatePresence>
               {showAddForm && (
@@ -228,6 +330,26 @@ export default function WarehouseSettings() {
                           placeholder="e.g. WH-MAIN"
                         />
                       </div>
+                    </div>
+
+                    {/* Indian City Dropdown */}
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--muted-text)] mb-1.5 flex items-center gap-1.5">
+                        <MapPin size={14} className="text-orange-500" /> City (India)
+                      </label>
+                      <select
+                        value={formData.city}
+                        onChange={e => setFormData({...formData, city: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-[var(--input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] transition-all bg-white"
+                      >
+                        <option value="">Select City...</option>
+                        {INDIAN_CITIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                      </select>
+                      {formData.city && (
+                        <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                          <MapPin size={10} /> {formData.city} will be marked on the Geographic Overview map
+                        </p>
+                      )}
                     </div>
 
                     <div>

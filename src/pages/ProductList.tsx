@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Search, Filter, MoreVertical, ChevronRight, 
-  Download, ArrowUpDown, Package, DollarSign, Layers, 
+  Download, ArrowUpDown, Package, IndianRupee, Layers, 
   AlertTriangle, Edit2, Trash2, Check, X, Tag, Ruler
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -171,7 +171,7 @@ export default function ProductList() {
             { label: 'Total Products', value: stats?.total || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Low Stock', value: stats?.low_stock_count || 0, icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50' },
             { label: 'Out of Stock', value: stats?.out_of_stock_count || 0, icon: Layers, color: 'text-red-600', bg: 'bg-red-50' },
-            { label: 'Inventory Value', value: `₹${(stats?.total_value || 0).toLocaleString()}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+            { label: 'Inventory Value', value: `₹${(stats?.total_value || 0).toLocaleString()}`, icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-50' },
           ].map((stat, i) => (
             <motion.div 
               key={i}
