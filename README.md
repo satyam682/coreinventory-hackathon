@@ -14,9 +14,7 @@ CoreInventory is a modular Inventory Management System (IMS) built for the Odoo 
 - Dashboard Analytics
 
 ## Tech Stack
-Frontend: React + Vite + TypeScript
+Frontend: React + Vite + TypeScript/JavaScript
 Backend: Node.js + Express
 Database: MySQL
 
-## Team
-Satyam
