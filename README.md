@@ -12,7 +12,9 @@ It includes an **AI-powered chatbot** that lets users perform warehouse operatio
 
 ## Features
 ![Delivery Schedule email to reciver](image/image.png)
-![Delivery successful email to reciver](image/'image copy'.png)
+![Delivery successful email to reciver](image/'image2'.png)
+![Forgot Password](image/'image3'.png)
+![Data Base](image/'image4'.png)
 
 - **Authentication** — Secure login, registration, JWT-based sessions
 - **Dashboard** — Live stats: pending receipts, deliveries, stock levels, recent operations
