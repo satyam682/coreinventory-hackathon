@@ -2,9 +2,9 @@
 
 ---
 
-## What is CoreInventory?
+## What is Sanchay?
 
-CoreInventory is a full-stack warehouse management system that helps businesses track incoming and outgoing stock, manage products, and monitor inventory movements — all in real time.
+Sanchay is a full-stack warehouse management system that helps businesses track incoming and outgoing stock, manage products, and monitor inventory movements — all in real time.
 
 It includes an **AI-powered chatbot** that lets users perform warehouse operations using plain English instead of filling forms.
 
@@ -53,13 +53,6 @@ cd backend
 npm install
 ```
 
-Create `backend/.env`:
-```env
-PORT=5000
-DATABASE_URL=your_postgresql_connection_string
-JWT_SECRET=your_jwt_secret
-ANTHROPIC_API_KEY=your_claude_api_key
-```
 
 ```bash
 npm run dev
@@ -74,7 +67,7 @@ npm install
 
 Create `frontend/.env`:
 ```env
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:3000
 ```
 
 ```bash
