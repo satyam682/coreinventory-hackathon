@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sora: "Sora", sans-serif;
+  --font-dm-sans: "DM Sans", sans-serif;
+  
+  --color-primary-orange: #F97316;
+  --color-primary-green: #22C55E;
+  --color-dark-text: #1A1A1A;
+  --color-muted-text: #6B7280;
+  --color-input-border: #E5E7EB;
+  --color-error-red: #EF4444;
+  --color-light-orange-bg: #FFF7ED;
+  --color-light-green-bg: #F0FDF4;
+  --color-light-blue-bg: #EFF6FF;
+}
+
+:root {
+  --primary-bg: #FFFFFF;
+  --primary-orange: #F97316;
+  --primary-green: #22C55E;
+  --dark-text: #1A1A1A;
+  --muted-text: #6B7280;
+  --input-border: #E5E7EB;
+  --input-focus: #F97316;
+  --error-red: #EF4444;
+  --card-shadow: rgba(249,115,22,0.12);
+  --light-orange-bg: #FFF7ED;
+  --light-green-bg: #F0FDF4;
+  --light-blue-bg: #EFF6FF;
+}
+
+body {
+  font-family: var(--font-dm-sans);
+  background-color: var(--light-orange-bg);
+  color: var(--dark-text);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sora);
+}
